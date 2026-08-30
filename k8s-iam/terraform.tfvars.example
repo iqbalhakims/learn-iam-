@@ -7,6 +7,13 @@ lead_principal_arns = [
   "arn:aws:iam::123456789012:user/alicia.lead",
 ]
 
+# MLOps engineers supporting the team -- get the same namespace-admin
+# access as lead_principal_arns (same Kubernetes group), tracked separately
+# here just so it's clear who's a researcher-lead vs platform support.
+mlops_principal_arns = [
+  "arn:aws:iam::123456789012:user/imran.mlops",
+]
+
 # The four remaining researchers.
 member_principal_arns = [
   "arn:aws:iam::123456789012:user/ben.researcher",

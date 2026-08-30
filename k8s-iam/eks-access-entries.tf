@@ -13,6 +13,15 @@ resource "aws_eks_access_entry" "lead" {
   type              = "STANDARD"
 }
 
+resource "aws_eks_access_entry" "mlops" {
+  for_each = toset(var.mlops_principal_arns)
+
+  cluster_name      = var.cluster_name
+  principal_arn     = each.value
+  kubernetes_groups = ["ml-research-leads"]
+  type              = "STANDARD"
+}
+
 resource "aws_eks_access_entry" "member" {
   for_each = toset(var.member_principal_arns)
 

@@ -1,7 +1,8 @@
 # ML Research Team — EKS IAM Access Design
 
 Access design for a 5-person ML research team (1 lead + 4 researchers) on an
-existing AWS EKS cluster.
+existing AWS EKS cluster, plus an optional MLOps support tier with the same
+access as the lead.
 
 ## Design decisions
 
@@ -31,13 +32,22 @@ and the actual permissions live entirely in native Kubernetes RBAC
 (`rbac.tf`). One source of truth for "what can this tier actually do,"
 reviewable in a normal PR diff.
 
-**Direct principal mapping, no shared assume-role.** `lead_principal_arns`
-and `member_principal_arns` take each person's existing IAM identity (an IAM
-user, or more realistically an Identity Center / SSO permission-set role)
-directly. This avoids adding an extra shared-role indirection layer with its
-own trust policy and session-tagging to get right — EKS access entries scale
-fine to five (or fifty) individual principals, so the indirection buys
-nothing here.
+**Direct principal mapping, no shared assume-role.** `lead_principal_arns`,
+`mlops_principal_arns`, and `member_principal_arns` take each person's
+existing IAM identity (an IAM user, or more realistically an Identity Center
+/ SSO permission-set role) directly. This avoids adding an extra shared-role
+indirection layer with its own trust policy and session-tagging to get right
+— EKS access entries scale fine to five (or fifty) individual principals, so
+the indirection buys nothing here.
+
+**MLOps engineers share the leads' group, not a third Role.**
+`mlops_principal_arns` gets its own access-entry resource (`eks-access-entries.tf`)
+so onboarding/offboarding MLOps support staff is tracked separately from the
+research lead, but the access entries map them into the *same*
+`ml-research-leads` Kubernetes group. There's still only one Role
+(`ml-research-lead` in `rbac.tf`) granting namespace-admin permissions — if a
+third tier ever needs genuinely different access, that's the point to give
+it its own group and Role.
 
 **IRSA instead of static AWS creds in Secrets.** Training/inference pods
 that need S3 (datasets, model artifacts) or ECR access use the
@@ -58,7 +68,7 @@ Terraform.
 
 ## Access matrix
 
-| Capability | `ml-research-leads` | `ml-research-members` |
+| Capability | `ml-research-leads` (lead + mlops) | `ml-research-members` |
 |---|---|---|
 | Pods / Deployments / Jobs / CronJobs / Services / ConfigMaps / PVCs (CRUD) | ✅ | ✅ |
 | `pods/exec`, `pods/log`, `pods/portforward` | ✅ | ✅ |
@@ -68,6 +78,11 @@ Terraform.
 | Read-only: nodes, namespaces, storage classes, priority classes (cluster-scoped) | ✅ | ✅ |
 | ResourceQuota / LimitRange changes | ❌ (platform team only) | ❌ |
 | AWS S3 / ECR (via pod IRSA, not user identity) | via `ml-research-sa` | via `ml-research-sa` |
+
+`mlops_principal_arns` and `lead_principal_arns` are tracked as separate
+Terraform inputs (separate access-entry resources) but both map to the
+`ml-research-leads` group, so they always have identical permissions by
+construction — no risk of the two drifting apart.
 
 ## Guardrails on the namespace itself
 
@@ -79,8 +94,9 @@ Terraform.
 
 ## Onboarding / offboarding a team member
 
-- **Onboard**: add their principal ARN to `lead_principal_arns` or
-  `member_principal_arns` in `terraform.tfvars`, `terraform apply`. Attach
+- **Onboard**: add their principal ARN to `lead_principal_arns`,
+  `mlops_principal_arns`, or `member_principal_arns` in `terraform.tfvars`,
+  `terraform apply`. Attach
   the output `eks_describe_cluster_policy_arn` to their IAM identity (if not
   already covered by an existing policy/permission set), then they run the
   `kubeconfig_command` output.

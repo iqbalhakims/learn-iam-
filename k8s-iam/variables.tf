@@ -34,6 +34,12 @@ variable "member_principal_arns" {
   }
 }
 
+variable "mlops_principal_arns" {
+  description = "IAM principal ARNs (IAM users, or SSO/Identity Center permission-set roles) for the MLOps engineers supporting this team. Mapped into the same ml-research-leads Kubernetes group as lead_principal_arns, so they get identical namespace-admin-level RBAC -- no separate Role to keep in sync."
+  type        = list(string)
+  default     = []
+}
+
 variable "ml_data_bucket_arns" {
   description = "S3 bucket ARNs (datasets/model artifacts) the team's workloads need access to. Used to scope the IRSA pod role instead of handing out static credentials via K8s secrets."
   type        = list(string)
