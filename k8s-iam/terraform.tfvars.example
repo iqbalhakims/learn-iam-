@@ -1,0 +1,26 @@
+aws_region   = "us-east-1"
+cluster_name = "ml-platform-eks"
+namespace    = "ml-research"
+
+# One team lead. Add more ARNs to the list if leadership is shared.
+lead_principal_arns = [
+  "arn:aws:iam::123456789012:user/alicia.lead",
+]
+
+# The four remaining researchers.
+member_principal_arns = [
+  "arn:aws:iam::123456789012:user/ben.researcher",
+  "arn:aws:iam::123456789012:user/carla.researcher",
+  "arn:aws:iam::123456789012:user/deshawn.researcher",
+  "arn:aws:iam::123456789012:user/elif.researcher",
+]
+
+# Datasets / model artifacts the team's pods (via IRSA) need to read/write.
+ml_data_bucket_arns = [
+  "arn:aws:s3:::ml-research-datasets",
+  "arn:aws:s3:::ml-research-model-artifacts",
+]
+
+ecr_repository_arns = [
+  "arn:aws:ecr:us-east-1:123456789012:repository/ml-research-training",
+]
